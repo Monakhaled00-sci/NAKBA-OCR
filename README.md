@@ -39,12 +39,8 @@ Key design choices:
 ├── predict_vllm.py      # Blind-set inference → submission CSV (vLLM, parallel)
 ├── prompts.py           # OCR prompts used in all runs
 ├── requirements.txt     # Python dependencies
-├── LICENSE
 └── data/                # NOT included – see Data Format below
     ├── train/
-    │   ├── images/
-    │   └── annotations.csv
-    ├── val/
     │   ├── images/
     │   └── annotations.csv
     ├── test/
