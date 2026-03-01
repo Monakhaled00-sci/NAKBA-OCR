@@ -108,7 +108,66 @@ Or set `model_path` in the scripts to the HF hub ID `"Qwen/Qwen3-VL-4B-Instruct"
 
 ## Reproducing the Results
 
-### Step 1 – Fine-tune
+There are two ways to reproduce the results:
+
+---
+
+###  Option A – Skip fine-tuning (use our pre-trained model)
+
+Our fine-tuned model is publicly available on HuggingFace:
+**[Moankhaled10/nakba-ocr](https://huggingface.co/Moankhaled10/nakba-ocr)**
+
+**1. Download the model:**
+
+```bash
+huggingface-cli download Moankhaled10/nakba-ocr \
+    --local-dir ./models/nakba-ocr
+```
+
+**2. Run HuggingFace inference** – set this in the CONFIG block of `predict.py` or `evaluate.py`:
+
+```python
+model_path = "./models/nakba-ocr/final_model"
+```
+
+Then run:
+
+```bash
+python predict.py   # blind-set submission
+# or
+python evaluate.py  # test-set with CER/WER metrics
+```
+
+**3. Run vLLM inference** – start the server:
+
+```bash
+vllm serve ./models/nakba-ocr/final_model \
+    --served-model-name nakba-ocr \
+    --port 7834 \
+    --quantization fp8 \
+    --gpu-memory-utilization 0.3 \
+    --max-model-len 1024 \
+    --trust-remote-code
+```
+
+Then set in `predict_vllm.py` CONFIG block:
+
+```python
+BASE_URL   = "http://localhost:7834"
+MODEL_NAME = "nakba-ocr"
+```
+
+And run:
+
+```bash
+python predict_vllm.py
+```
+
+---
+
+###  Option B – Full reproduction (fine-tune from scratch)
+
+#### Step 1 – Fine-tune
 
 Open `train.py` and set the paths in the `CONFIG` block at the bottom:
 
@@ -139,9 +198,7 @@ Monitor training with TensorBoard:
 tensorboard --logdir ./output/qwen3-vl-4b-arabic-ocr/tensorboard
 ```
 
----
-
-### Step 2 – Evaluate on the test set
+#### Step 2 – Evaluate on the test set
 
 Open `evaluate.py`, update the paths in the `CONFIG` block at the bottom, then run:
 
@@ -151,9 +208,7 @@ python evaluate.py
 
 This writes a JSON file with per-image CER / WER and an aggregate summary entry at the end.
 
----
-
-### Step 3a – Blind-set submission (HuggingFace, sequential)
+#### Step 3a – Blind-set submission (HuggingFace, sequential)
 
 Open `predict.py`, update the paths, then run:
 
@@ -161,13 +216,9 @@ Open `predict.py`, update the paths, then run:
 python predict.py
 ```
 
----
-
-### Step 3b – Blind-set submission (vLLM, parallel – faster)
+#### Step 3b – Blind-set submission (vLLM, parallel – faster)
 
 This approach spawns multiple HTTP workers that send requests to a vLLM server concurrently, giving significantly higher throughput than sequential HuggingFace inference.
-
-#### Serve the model with vLLM
 
 Install vLLM (separate from the main requirements):
 
@@ -179,6 +230,7 @@ Start the vLLM server pointing at the fine-tuned model:
 
 ```bash
 vllm serve ./output/qwen3-vl-4b-arabic-ocr/final_model \
+    --served-model-name nakba-ocr \
     --port 7834 \
     --quantization fp8 \
     --gpu-memory-utilization 0.3 \
@@ -202,16 +254,12 @@ Verify the server is up:
 curl http://localhost:7834/v1/models
 ```
 
-You should see `qwen3-vl-4b` in the response.
-
-#### Run parallel inference
-
 Open `predict_vllm.py`, set the paths and server details in the `CONFIG` block:
 
 ```python
-BASE_URL      = "http://localhost:7834"   # must match --host / --port above
-MODEL_NAME    = "qwen3-vl-4b"            # must match --served-model-name above
-NUM_PROCESSES = 10                        # parallel HTTP workers
+BASE_URL      = "http://localhost:7834"
+MODEL_NAME    = "nakba-ocr"
+NUM_PROCESSES = 10
 ```
 
 Then run:
