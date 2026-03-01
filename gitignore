@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+
+# Model weights (large files)
+models/
+output/
+
+# Data (not included in repo)
+data/
+
+# Logs
+*.log
+logs/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
