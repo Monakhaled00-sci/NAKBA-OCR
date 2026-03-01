@@ -44,7 +44,10 @@ Key design choices:
     ├── train/
     │   ├── images/
     │   └── annotations.csv
-    ├── dev/
+    ├── val/
+    │   ├── images/
+    │   └── annotations.csv
+    ├── test/
     │   ├── images/
     │   └── annotations.csv
     └── blind/
@@ -180,12 +183,10 @@ Start the vLLM server pointing at the fine-tuned model:
 
 ```bash
 vllm serve ./output/qwen3-vl-4b-arabic-ocr/final_model \
-    --served-model-name qwen3-vl-4b \
-    --host 0.0.0.0 \
-    --port 8000 \
-    --max-model-len 8192 \
-    --max-num-seqs 16 \
-    --dtype bfloat16 \
+    --port 7834 \
+    --quantization fp8 \
+    --gpu-memory-utilization 0.3 \
+    --max-model-len 1024 \
     --trust-remote-code
 ```
 
@@ -193,16 +194,16 @@ Key flags explained:
 
 | Flag | Purpose |
 |------|---------|
-| `--served-model-name` | Name clients use in API requests – must match `MODEL_NAME` in `predict_vllm.py` |
-| `--max-model-len` | Maximum context length in tokens (8192 is safe for this task) |
-| `--max-num-seqs` | Max concurrent sequences; increase for higher throughput if VRAM allows |
-| `--dtype bfloat16` | Match the training precision |
+| `--port 7834` | Port the server listens on – must match `BASE_URL` in `predict_vllm.py` |
+| `--quantization fp8` | FP8 quantization to reduce VRAM usage |
+| `--gpu-memory-utilization 0.3` | Fraction of GPU memory allocated to vLLM (30 %) |
+| `--max-model-len 1024` | Maximum context length in tokens |
 | `--trust-remote-code` | Required for Qwen3-VL custom architecture |
 
 Verify the server is up:
 
 ```bash
-curl http://localhost:8000/v1/models
+curl http://localhost:7834/v1/models
 ```
 
 You should see `qwen3-vl-4b` in the response.
@@ -212,7 +213,7 @@ You should see `qwen3-vl-4b` in the response.
 Open `predict_vllm.py`, set the paths and server details in the `CONFIG` block:
 
 ```python
-BASE_URL      = "http://localhost:8000"   # must match --host / --port above
+BASE_URL      = "http://localhost:7834"   # must match --host / --port above
 MODEL_NAME    = "qwen3-vl-4b"            # must match --served-model-name above
 NUM_PROCESSES = 10                        # parallel HTTP workers
 ```
@@ -236,7 +237,7 @@ Transcribe all Arabic handwritten text from this image exactly as written,
 preserving diacritics, punctuation, and layout. Output only the transcribed text.
 ```
 
---- 
+---
 
 ## Team & Collaborators
 
